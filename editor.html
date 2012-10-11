@@ -1,0 +1,271 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>Editor</title>
+<style type="text/css">
+<!--
+body
+{
+	background-color: #808080;
+	cursor: default;
+}
+td
+{
+	width: 16px;
+	height: 16px;
+}
+*.mode
+{
+	background-color: #ffffff;
+}
+-->
+</style>
+</head>
+<body>
+<script type="text/javascript">
+<!--
+var CELLS_ROWS = 20;
+var CELLS_COLS = 20;
+
+var WALL = 1;
+var TOGE = 2;
+var BANE = 3;
+var START = 4;
+var END = 5;
+
+var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz&+";
+
+var cells = new Array(CELLS_ROWS);
+var startRow = 1;
+var startCol = 1;
+var endRow = CELLS_ROWS - 2;
+var endCol = CELLS_COLS - 2;
+var mode = WALL;
+
+var table = new Array(CELLS_ROWS);
+var modes = new Array(3);
+
+document.write("<table>");
+for (var i = 0; i < CELLS_ROWS; i++)
+{
+	document.write("<tr>");
+	for (var j = 0; j < CELLS_COLS; j++)
+	{
+		document.write("<td id=\"CELL" + i + "_" + j +"\">あ<\/td>");
+	}
+	document.write("<\/tr>");
+}
+document.write("<\/table>");
+document.write("<div>");
+document.write("<span id=\"MODE0\" class=\"mode\">壁<\/span>");
+document.write("<span id=\"MODE1\" class=\"mode\">刺<\/span>");
+document.write("<span id=\"MODE2\" class=\"mode\">跳<\/span>");
+document.write("<span id=\"MODE3\" class=\"mode\">始<\/span>");
+document.write("<span id=\"MODE4\" class=\"mode\">終<\/span>");
+document.write("<\/div>");
+document.write("<div><span id=\"DONE\" class=\"mode\">完了<\/span><\/div>");
+
+for (var i = 0; i < CELLS_ROWS; i++)
+{
+	cells[i] = new Array(CELLS_COLS);
+	table[i] = new Array(CELLS_COLS);
+	for (var j = 0; j < CELLS_COLS; j++)
+	{
+		table[i][j] = document.getElementById("CELL" + i + "_" + j);
+		table[i][j].onclick = clicked;
+		if ((i == 0) || (i == CELLS_ROWS - 1) || (j == 0) || (j == CELLS_COLS - 1))
+		{
+			cells[i][j] = WALL;
+			table[i][j].style.color = "#000000";
+			table[i][j].style.backgroundColor = "#000000";
+			table[i][j].innerHTML = "壁";
+		}
+		else
+		{
+			cells[i][j] = 0;
+			table[i][j].style.color = "#ffffff";
+			table[i][j].style.backgroundColor = "#ffffff";
+			table[i][j].innerHTML = "無";
+		}
+	}
+}
+cells[startRow][startCol] = START;
+table[startRow][startCol].style.color = "#0000ff";
+table[startRow][startCol].style.backgroundColor = "#0000ff";
+table[startRow][startCol].innerHTML = "始";
+cells[endRow][endCol] = END;
+table[endRow][endCol].style.color = "#ff0000";
+table[endRow][endCol].style.backgroundColor = "#ff0000";
+table[endRow][endCol].innerHTML = "壁";
+
+for (var i = 0; i < 5; i++)
+{
+	modes[i] = document.getElementById("MODE" + i);
+	modes[i].onclick = changeMode;
+}
+modes[0].style.backgroundColor = "#ff0000";
+
+document.getElementById("DONE").onclick = generateQuery;
+
+function generateQuery()
+{
+	var limit = Math.ceil(CELLS_ROWS * CELLS_COLS / 3) * 3;
+	var temp = new Array(limit);
+	var query = "";
+	
+	for (var i = 0; i < CELLS_ROWS; i++)
+	{
+		for (var j = 0; j < CELLS_COLS; j++)
+		{
+			if (cells[i][j] < START)
+			{
+				temp[i * CELLS_ROWS + j] = cells[i][j];
+			}
+			else
+			{
+				temp[i * CELLS_ROWS + j] = 0;
+			}
+		}
+	}
+	for (var i = CELLS_ROWS * CELLS_COLS; i < limit; i++)
+	{
+		temp[i] = 0;
+	}
+	
+	for (var i = 0; i < limit / 3; i++)
+	{
+		var n = temp[i * 3] + (temp[i * 3 + 1] << 2) + (temp[i * 3 + 2] << 4);
+		query += chars.charAt(n);
+	}
+	query = chars.charAt(startRow) + chars.charAt(startCol) + chars.charAt(endRow) + chars.charAt(endCol) + query;
+	
+	var url = location.href.replace("editor.html", "jumper.html?") + query;
+	document.write(url);
+	document.write("<br>");
+	document.write("<a href=\"" + url + "\">" + url + "<\/a>");
+}
+
+function clicked()
+{
+	var temp = this.id.replace("CELL", "").split("_");
+	var row = parseInt(temp[0]);
+	var col = parseInt(temp[1]);
+	
+	if (cells[row][col] != 0)
+	{
+		if ((cells[row][col] != START) && (cells[row][col] != END))
+		{
+			cells[row][col] = 0;
+			table[row][col].style.color = "#ffffff";
+			table[row][col].style.backgroundColor = "#ffffff";
+			table[row][col].innerHTML = "無";
+		}
+	}
+	else if (mode == WALL)
+	{
+		cells[row][col] = WALL;
+		table[row][col].style.color = "#000000";
+		table[row][col].style.backgroundColor = "#000000";
+		table[row][col].innerHTML = "壁";
+	}
+	else if (mode == TOGE)
+	{
+		cells[row][col] = TOGE;
+		table[row][col].style.color = "#ff8000";
+		table[row][col].style.backgroundColor = "#ff8000";
+		table[row][col].innerHTML = "刺";
+	}
+	else if (mode == BANE)
+	{
+		cells[row][col] = BANE;
+		table[row][col].style.color = "#00ff00";
+		table[row][col].style.backgroundColor = "#00ff00";
+		table[row][col].innerHTML = "跳";
+	}
+	else if (mode == START)
+	{
+		cells[startRow][startCol] = 0;
+		table[startRow][startCol].style.color = "#ffffff";
+		table[startRow][startCol].style.backgroundColor = "#ffffff";
+		table[startRow][startCol].innerHTML = "無";
+		startRow = row;
+		startCol = col;
+		cells[startRow][startCol] = START;
+		table[startRow][startCol].style.color = "#0000ff";
+		table[startRow][startCol].style.backgroundColor = "#0000ff";
+		table[startRow][startCol].innerHTML = "始";
+		
+	}
+	else if (mode == END)
+	{
+		cells[endRow][endCol] = 0;
+		table[endRow][endCol].style.color = "#ffffff";
+		table[endRow][endCol].style.backgroundColor = "#ffffff";
+		table[endRow][endCol].innerHTML = "無";
+		endRow = row;
+		endCol = col;
+		cells[endRow][endCol] = END;
+		table[endRow][endCol].style.color = "#ff0000";
+		table[endRow][endCol].style.backgroundColor = "#ff0000";
+		table[endRow][endCol].innerHTML = "始";
+	}
+}
+
+function changeMode()
+{
+	var n = parseInt(this.id.replace("MODE", ""));
+	if (n == 0)
+	{
+		mode = WALL;
+		modes[0].style.backgroundColor = "#ff0000";
+		modes[1].style.backgroundColor = "#ffffff";
+		modes[2].style.backgroundColor = "#ffffff";
+		modes[3].style.backgroundColor = "#ffffff";
+		modes[4].style.backgroundColor = "#ffffff";
+		
+	}
+	else if (n == 1)
+	{
+		mode = TOGE;
+		modes[0].style.backgroundColor = "#ffffff";
+		modes[1].style.backgroundColor = "#ff0000";
+		modes[2].style.backgroundColor = "#ffffff";
+		modes[3].style.backgroundColor = "#ffffff";
+		modes[4].style.backgroundColor = "#ffffff";
+	}
+	else if (n == 2)
+	{
+		mode = BANE;
+		modes[0].style.backgroundColor = "#ffffff";
+		modes[1].style.backgroundColor = "#ffffff";
+		modes[2].style.backgroundColor = "#ff0000";
+		modes[3].style.backgroundColor = "#ffffff";
+		modes[4].style.backgroundColor = "#ffffff";
+	}
+	else if (n == 3)
+	{
+		mode = START;
+		modes[0].style.backgroundColor = "#ffffff";
+		modes[1].style.backgroundColor = "#ffffff";
+		modes[2].style.backgroundColor = "#ffffff";
+		modes[3].style.backgroundColor = "#ff0000";
+		modes[4].style.backgroundColor = "#ffffff";
+	}
+	else if (n == 4)
+	{
+		mode = END;
+		modes[0].style.backgroundColor = "#ffffff";
+		modes[1].style.backgroundColor = "#ffffff";
+		modes[2].style.backgroundColor = "#ffffff";
+		modes[3].style.backgroundColor = "#ffffff";
+		modes[4].style.backgroundColor = "#ff0000";
+	}
+}
+
+// -->
+</script>
+</body>
+</html>
